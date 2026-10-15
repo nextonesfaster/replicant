@@ -254,3 +254,87 @@ fn invalid_limit_arguments_exit_two() {
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
 }
+
+#[test]
+fn json_reports_equivalence_and_differences() {
+    for (args, code, expected) in [
+        (
+            ["--json", "ab|ac", "a(b|c)"],
+            0,
+            serde_json::json!({"equivalent": true, "counterexample": null, "matches": null}),
+        ),
+        (
+            ["--json", "a(b|c)", "a(b|c)*"],
+            1,
+            serde_json::json!({"equivalent": false, "counterexample": "a", "matches": "right"}),
+        ),
+        (
+            ["--json", "a(b|c)*", "a(b|c)"],
+            1,
+            serde_json::json!({"equivalent": false, "counterexample": "a", "matches": "left"}),
+        ),
+        (
+            ["--json", "(ab|ac)*", "a(b|c)*"],
+            1,
+            serde_json::json!({"equivalent": false, "counterexample": "", "matches": "left"}),
+        ),
+    ] {
+        let output = vk(&args);
+        assert_eq!(output.status.code(), Some(code));
+        assert!(output.stderr.is_empty());
+        let actual: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(
+            output.stdout.iter().filter(|&&byte| byte == b'\n').count(),
+            1
+        );
+        assert!(output.stdout.ends_with(b"\n"));
+    }
+}
+
+#[test]
+fn json_round_trips_control_characters_and_unicode() {
+    for (pattern, input) in [
+        (r"\x00", "\0"),
+        (r"\n", "\n"),
+        (r"\t", "\t"),
+        (r"\x1B", "\x1B"),
+        ("\"", "\""),
+        (r"\\", "\\"),
+        ("猫", "猫"),
+    ] {
+        let output = vk(&["--json", "-d2MiB", "-s1000", pattern, "[a&&b]"]);
+        assert_eq!(output.status.code(), Some(1));
+        assert!(output.stderr.is_empty());
+        let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(
+            value,
+            serde_json::json!({
+                "equivalent": false,
+                "counterexample": input,
+                "matches": "left",
+            })
+        );
+        assert_eq!(
+            output.stdout.iter().filter(|&&byte| byte == b'\n').count(),
+            1
+        );
+    }
+}
+
+#[test]
+fn json_errors_leave_stdout_empty() {
+    for args in [
+        vec!["--json", "[", "a"],
+        vec!["--json", "a", r"\bcat\b"],
+        vec!["--json", "--state-limit", "0", "a", "b"],
+        vec!["--json", "--nfa-limit", "0", "a", "b"],
+        vec!["--json", "--dfa-limit", "1Kb", "a", "b"],
+        vec!["--json", "a"],
+    ] {
+        let output = vk(&args);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}

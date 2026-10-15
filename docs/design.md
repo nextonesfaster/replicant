@@ -84,6 +84,13 @@ The CLI uses these exit codes:
 | `1` | The patterns differ; output includes a witness and which pattern accepts it. |
 | `2` | Invalid arguments or comparison failure. |
 
+`--json` emits one JSON object with `equivalent`, `counterexample`, and `matches`
+fields, followed by a newline. Equivalent patterns have `null` counterexample
+and matching-side fields. Different patterns have a string counterexample and
+`"left"` or `"right"`. The empty string is a valid counterexample. Field order is
+not part of the output contract. Errors still go to stderr as plain text, with
+no comparison object on stdout, and exit codes are unchanged.
+
 ## Approach
 
 Compile each expression into a deterministic finite automaton (DFA), enforcing

@@ -7,6 +7,7 @@ use std::{
 
 use clap::Parser;
 use replicant_regex::{CompareOptions, Comparison, CompileOptions, Pattern, Side};
+use serde::Serialize;
 
 use limits::{Limit, parse_size_limit, parse_state_limit};
 
@@ -42,6 +43,9 @@ struct Cli {
     /// Right regular expression
     #[arg(value_name = "RIGHT")]
     right: String,
+    /// Print the comparison result as JSON
+    #[arg(long)]
+    json: bool,
     /// NFA size limit (default: 10MiB)
     #[arg(short = 'n', long = "nfa-limit", value_name = "SIZE", value_parser = parse_size_limit)]
     nfa_size_limit: Option<Limit>,
@@ -54,6 +58,13 @@ struct Cli {
     /// Maximum distinct DFA state pairs, including the initial pair (default: 100000)
     #[arg(short = 's', long = "state-limit", value_name = "COUNT", value_parser = parse_state_limit)]
     state_pair_limit: Option<Limit>,
+}
+
+#[derive(Serialize)]
+struct ComparisonOutput<'a> {
+    equivalent: bool,
+    counterexample: Option<&'a str>,
+    matches: Option<&'a str>,
 }
 
 fn main() -> ExitCode {
@@ -92,23 +103,34 @@ fn run(args: Cli) -> Result<ExitCode, String> {
     let result = left
         .compare_with_options(&right, &compare_options)
         .map_err(|error| error.to_string())?;
-    let (output, code) = match result {
-        Comparison::Equivalent => ("equivalent".to_owned(), ExitCode::SUCCESS),
+    let (input, side, code) = match &result {
+        Comparison::Equivalent => (None, None, ExitCode::SUCCESS),
         Comparison::Different(example) => {
             let side = match example.matched_by {
                 Side::Left => "left",
                 Side::Right => "right",
             };
-            (
-                format!(
-                    "different\ncounterexample: {:?}\nmatches: {side}",
-                    example.input
-                ),
-                ExitCode::from(1),
-            )
+            (Some(example.input.as_str()), Some(side), ExitCode::from(1))
         }
     };
-    writeln!(io::stdout().lock(), "{output}")
-        .map_err(|error| format!("could not write output: {error}"))?;
+    let mut stdout = io::stdout().lock();
+    if args.json {
+        let output = ComparisonOutput {
+            equivalent: matches!(result, Comparison::Equivalent),
+            counterexample: input,
+            matches: side,
+        };
+        serde_json::to_writer(&mut stdout, &output)
+            .map_err(|error| format!("could not write JSON output: {error}"))?;
+    } else {
+        let output = match (input, side) {
+            (Some(input), Some(side)) => {
+                format!("different\ncounterexample: {input:?}\nmatches: {side}")
+            }
+            _ => "equivalent".to_owned(),
+        };
+        write!(stdout, "{output}").map_err(|error| format!("could not write output: {error}"))?;
+    }
+    writeln!(stdout).map_err(|error| format!("could not write output: {error}"))?;
     Ok(code)
 }

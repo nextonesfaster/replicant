@@ -36,6 +36,26 @@ Run `vk --help` for help or `vk --version` for the version.
 
 Results are written to stdout; errors are written to stderr.
 
+### JSON output
+
+Use `--json` to print a single JSON object followed by a newline:
+
+```sh
+$ vk --json 'ab|ac' 'a(b|c)'
+{"equivalent":true,"counterexample":null,"matches":null}
+
+$ vk --json 'a(b|c)' 'a(b|c)*'
+{"equivalent":false,"counterexample":"a","matches":"right"}
+```
+
+`equivalent` is a boolean. For different patterns, `counterexample` is the
+distinguishing string and `matches` is `"left"` or `"right"`. Both fields are
+`null` when the patterns are equivalent. An empty counterexample is `""`, which
+is distinct from `null`. Object key order is not significant.
+
+Exit codes are unchanged. Errors remain plain text on stderr and leave stdout
+empty.
+
 ### Resource limits
 
 Compilation and comparison use these limits by default:
