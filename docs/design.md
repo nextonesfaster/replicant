@@ -63,8 +63,14 @@ in bytes, including the empty string when it distinguishes the patterns.
 equivalence decision. Library inputs and counterexamples are ordinary strings;
 escaping them for terminal output belongs to the CLI.
 
-The CLI accepts two patterns and uses the library's default compilation and
-comparison limits. It prints quoted counterexamples with control characters,
+The CLI accepts two patterns and defaults to the library's compilation and
+comparison limits. `--nfa-limit`, `--dfa-limit`, and
+`--determinize-limit` override the compilation limits for both patterns;
+`--state-limit` overrides the comparison limit. Sizes accept integer byte
+counts or case-sensitive decimal/binary unit suffixes. State pair limits accept integer counts.
+`none` disables a limit; zero remains a zero limit.
+
+The CLI prints quoted counterexamples with control characters,
 quotes, and backslashes escaped. Printable Unicode is preserved, and an empty
 counterexample is printed as `""`. Results go to stdout and errors to stderr.
 `--help` and `--version` exit successfully without comparing patterns. Patterns

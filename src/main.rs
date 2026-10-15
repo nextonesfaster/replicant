@@ -1,10 +1,14 @@
+mod limits;
+
 use std::{
     io::{self, Write},
     process::ExitCode,
 };
 
 use clap::Parser;
-use replicant_regex::{Comparison, Pattern, Side};
+use replicant_regex::{CompareOptions, Comparison, CompileOptions, Pattern, Side};
+
+use limits::{Limit, parse_size_limit, parse_state_limit};
 
 const HELP_HEADER: &str = concat!("replicant ", env!("CARGO_PKG_VERSION"));
 
@@ -15,6 +19,9 @@ const LONG_ABOUT: &str =
 
 If they differ, print a shortest string matched by exactly one pattern and
 identify which pattern matches it. Length is measured in UTF-8 bytes.
+
+Memory limits accept bytes or units such as KB, MB, KiB, and MiB (case-sensitive).
+Use 'none' to disable a limit. A value of 0 sets a zero limit.
 
 Exit status is 0 if equivalent, 1 if different, and 2 on error.
 
@@ -35,6 +42,18 @@ struct Cli {
     /// Right regular expression
     #[arg(value_name = "RIGHT")]
     right: String,
+    /// NFA size limit (default: 10MiB)
+    #[arg(short = 'n', long = "nfa-limit", value_name = "SIZE", value_parser = parse_size_limit)]
+    nfa_size_limit: Option<Limit>,
+    /// DFA size limit (default: 10MiB)
+    #[arg(short = 'd', long = "dfa-limit", value_name = "SIZE", value_parser = parse_size_limit)]
+    dfa_size_limit: Option<Limit>,
+    /// Auxiliary memory limit for DFA construction (default: 10MiB)
+    #[arg(short = 't', long = "determinize-limit", value_name = "SIZE", value_parser = parse_size_limit)]
+    determinize_size_limit: Option<Limit>,
+    /// Maximum distinct DFA state pairs, including the initial pair (default: 100000)
+    #[arg(short = 's', long = "state-limit", value_name = "COUNT", value_parser = parse_state_limit)]
+    state_pair_limit: Option<Limit>,
 }
 
 fn main() -> ExitCode {
@@ -49,9 +68,30 @@ fn main() -> ExitCode {
 }
 
 fn run(args: Cli) -> Result<ExitCode, String> {
-    let left = Pattern::new(&args.left).map_err(|error| format!("left pattern: {error}"))?;
-    let right = Pattern::new(&args.right).map_err(|error| format!("right pattern: {error}"))?;
-    let result = left.compare(&right).map_err(|error| error.to_string())?;
+    let defaults = CompileOptions::default();
+    let compile_options = CompileOptions {
+        nfa_size_limit: args
+            .nfa_size_limit
+            .map_or(defaults.nfa_size_limit, |limit| limit.0),
+        dfa_size_limit: args
+            .dfa_size_limit
+            .map_or(defaults.dfa_size_limit, |limit| limit.0),
+        determinize_size_limit: args
+            .determinize_size_limit
+            .map_or(defaults.determinize_size_limit, |limit| limit.0),
+    };
+    let compare_options = CompareOptions {
+        state_pair_limit: args
+            .state_pair_limit
+            .map_or(CompareOptions::default().state_pair_limit, |limit| limit.0),
+    };
+    let left = Pattern::with_options(&args.left, &compile_options)
+        .map_err(|error| format!("left pattern: {error}"))?;
+    let right = Pattern::with_options(&args.right, &compile_options)
+        .map_err(|error| format!("right pattern: {error}"))?;
+    let result = left
+        .compare_with_options(&right, &compare_options)
+        .map_err(|error| error.to_string())?;
     let (output, code) = match result {
         Comparison::Equivalent => ("equivalent".to_owned(), ExitCode::SUCCESS),
         Comparison::Different(example) => {

@@ -132,7 +132,10 @@ fn help_and_version_exit_zero_without_comparing() {
             stdout.starts_with(concat!("replicant ", env!("CARGO_PKG_VERSION"), "\n")),
             "{stdout}"
         );
-        assert!(stdout.contains("Usage: vk <LEFT> <RIGHT>"), "{stdout}");
+        assert!(
+            stdout.contains("Usage: vk [OPTIONS] <LEFT> <RIGHT>"),
+            "{stdout}"
+        );
         if flag == "--help" {
             assert!(stdout.contains("whole-string matching"), "{stdout}");
             assert!(stdout.contains("Exit status is 0"), "{stdout}");
@@ -156,4 +159,98 @@ fn rejects_non_utf8_arguments() {
     assert_eq!(output.status.code(), Some(2));
     assert!(output.stdout.is_empty());
     assert!(!output.stderr.is_empty());
+}
+
+#[test]
+fn compilation_limits_can_be_set_or_disabled() {
+    for flag in [
+        "--nfa-limit",
+        "-n",
+        "--dfa-limit",
+        "-d",
+        "--determinize-limit",
+        "-t",
+    ] {
+        let output = vk(&[flag, "0", "a", "a"]);
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        assert!(output.stdout.is_empty());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains("left pattern:"), "{stderr}");
+        assert!(stderr.contains("limit"), "{stderr}");
+        for size in ["2097152", "2MB", "2MiB", "none"] {
+            assert_comparison(&[flag, size, "ab|ac", "a(b|c)"], 0, "equivalent\n");
+        }
+    }
+    assert_comparison(
+        &[
+            "--nfa-limit",
+            "none",
+            "--dfa-limit",
+            "none",
+            "--determinize-limit",
+            "none",
+            "--state-limit=none",
+            "ab|ac",
+            "a(b|c)",
+        ],
+        0,
+        "equivalent\n",
+    );
+}
+
+#[test]
+fn state_pair_limits_are_enforced() {
+    for flag in ["--state-limit", "-s"] {
+        for limit in ["0", "1"] {
+            let output = vk(&[flag, limit, "a", "b"]);
+            assert_eq!(output.status.code(), Some(2));
+            assert!(output.stdout.is_empty());
+            let stderr = String::from_utf8(output.stderr).unwrap();
+            assert!(
+                stderr.contains(&format!("limit of {limit} state pairs")),
+                "{stderr}"
+            );
+        }
+        for limit in ["1000", "none"] {
+            assert_comparison(
+                &["a", "a|b", flag, limit],
+                1,
+                "different\ncounterexample: \"b\"\nmatches: right\n",
+            );
+        }
+    }
+    assert_comparison(
+        &["-n2MiB", "-d2MiB", "-t2MiB", "-s1000", "ab|ac", "a(b|c)"],
+        0,
+        "equivalent\n",
+    );
+}
+
+#[test]
+fn invalid_limit_arguments_exit_two() {
+    for flag in [
+        "--nfa-limit",
+        "--dfa-limit",
+        "--determinize-limit",
+        "--state-limit",
+    ] {
+        for value in [
+            "-1",
+            "1.5",
+            "1XB",
+            "1Kb",
+            "1mib",
+            "999999999999999999999999999999999999999999999999",
+        ] {
+            let argument = format!("{flag}={value}");
+            let output = vk(&[&argument, "a", "b"]);
+            assert_eq!(output.status.code(), Some(2));
+            assert!(output.stdout.is_empty());
+            let stderr = String::from_utf8(output.stderr).unwrap();
+            assert!(stderr.contains(flag), "{stderr}");
+        }
+    }
+    let output = vk(&["--state-limit", "1MiB", "a", "b"]);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
 }

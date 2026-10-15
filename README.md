@@ -36,9 +36,39 @@ Run `vk --help` for help or `vk --version` for the version.
 
 Results are written to stdout; errors are written to stderr.
 
+### Resource limits
+
+Compilation and comparison use these limits by default:
+
+| Option | Default | Applies to |
+| --- | --- | --- |
+| `-n, --nfa-limit SIZE` | `10MiB` | NFA memory |
+| `-d, --dfa-limit SIZE` | `10MiB` | DFA memory |
+| `-t, --determinize-limit SIZE` | `10MiB` | Auxiliary memory used to build the DFA |
+| `-s, --state-limit COUNT` | `100000` | Distinct state pairs stored during comparison |
+
+Size values accept whole numbers of bytes or a suffix: `B`, `KB`, `MB`, `GB`,
+`TB`, `KiB`, `MiB`, `GiB`, or `TiB`. Suffixes are case-sensitive. Decimal units
+use powers of 1000; binary units use powers of 1024. State pair limits are plain
+integer counts. Each compilation limit applies separately to each pattern.
+
+```sh
+vk --dfa-limit 64MiB --state-limit 500000 'ab|ac' 'a(b|c)'
+```
+
+Use `none` to disable an individual limit. `0` sets a zero limit; it does not
+disable the limit. Exceeding a limit reports an error and exits with status `2`.
+The memory limits cover separate allocations, not total process memory.
+
 ## Installation
 
-Install from a local checkout with Rust and Cargo:
+Install from crates.io with Rust and Cargo:
+
+```sh
+cargo install --locked replicant-regex
+```
+
+Or install from a local checkout:
 
 ```sh
 cargo install --path .
