@@ -15,6 +15,27 @@ The project is written in Rust. To run the tests:
 cargo test
 ```
 
+Run the formatting, compilation, and Clippy checks with:
+
+```sh
+./scripts/check
+```
+
+The checks require the `rustfmt` and `clippy` components:
+
+```sh
+rustup component add rustfmt clippy
+```
+
+To run these checks before each commit, enable the Git hook in your clone:
+
+```sh
+git config --local core.hooksPath .githooks
+```
+
+The hook checks the working tree and rejects the commit if a check fails.
+GitHub Actions runs the same checks and the tests on pushes and pull requests.
+
 ## Name
 
 Replicant takes its name from *Blade Runner*. The film's Voight-Kampff test
