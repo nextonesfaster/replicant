@@ -72,12 +72,12 @@ impl Pattern {
     /// # Examples
     ///
     /// ```
-    /// use replicant::Pattern;
+    /// use replicant_regex::Pattern;
     ///
     /// let pattern = Pattern::new("ab|ac")?;
     /// assert!(pattern.is_match("ab"));
     /// assert!(!pattern.is_match("zab"));
-    /// # Ok::<(), replicant::CompileError>(())
+    /// # Ok::<(), replicant_regex::CompileError>(())
     /// ```
     pub fn new(pattern: &str) -> Result<Self, CompileError> {
         Self::with_options(pattern, &CompileOptions::default())
@@ -93,7 +93,7 @@ impl Pattern {
     /// # Examples
     ///
     /// ```
-    /// use replicant::{CompileOptions, Pattern};
+    /// use replicant_regex::{CompileOptions, Pattern};
     ///
     /// let options = CompileOptions {
     ///     dfa_size_limit: Some(64 * 1024 * 1024),
@@ -101,7 +101,7 @@ impl Pattern {
     /// };
     /// let pattern = Pattern::with_options("a(b|c)*", &options)?;
     /// assert!(pattern.is_match("abc"));
-    /// # Ok::<(), replicant::CompileError>(())
+    /// # Ok::<(), replicant_regex::CompileError>(())
     /// ```
     pub fn with_options(pattern: &str, options: &CompileOptions) -> Result<Self, CompileError> {
         let hir = regex_syntax::Parser::new()
@@ -144,13 +144,13 @@ impl Pattern {
     /// # Examples
     ///
     /// ```
-    /// use replicant::Pattern;
+    /// use replicant_regex::Pattern;
     ///
     /// let pattern = Pattern::new("a*")?;
     /// assert!(pattern.is_match(""));
     /// assert!(pattern.is_match("aaa"));
     /// assert!(!pattern.is_match("aaab"));
-    /// # Ok::<(), replicant::CompileError>(())
+    /// # Ok::<(), replicant_regex::CompileError>(())
     /// ```
     pub fn is_match(&self, input: &str) -> bool {
         let mut state = self.start;
@@ -174,7 +174,7 @@ impl Pattern {
     /// # Examples
     ///
     /// ```
-    /// use replicant::Pattern;
+    /// use replicant_regex::Pattern;
     ///
     /// let left = Pattern::new("ab|ac")?;
     /// let right = Pattern::new("a(b|c)")?;
@@ -198,7 +198,7 @@ impl Pattern {
     /// # Examples
     ///
     /// ```
-    /// use replicant::{CompareOptions, Pattern};
+    /// use replicant_regex::{CompareOptions, Pattern};
     ///
     /// let options = CompareOptions {
     ///     state_pair_limit: Some(1_000_000),
@@ -231,7 +231,7 @@ impl Pattern {
     /// # Examples
     ///
     /// ```
-    /// use replicant::{Comparison, Counterexample, Pattern, Side};
+    /// use replicant_regex::{Comparison, Counterexample, Pattern, Side};
     ///
     /// let left = Pattern::new("(ab|ac)*")?;
     /// let right = Pattern::new("a(b|c)*")?;

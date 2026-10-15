@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use replicant::{CompareError, CompareOptions, Comparison, Pattern, Side};
+use replicant_regex::{CompareError, CompareOptions, Comparison, Pattern, Side};
 
 struct FinitePattern {
     source: String,

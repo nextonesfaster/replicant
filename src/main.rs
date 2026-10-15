@@ -4,9 +4,9 @@ use std::{
 };
 
 use clap::Parser;
-use replicant::{Comparison, Pattern, Side};
+use replicant_regex::{Comparison, Pattern, Side};
 
-const HELP_HEADER: &str = concat!(env!("CARGO_PKG_NAME"), " ", env!("CARGO_PKG_VERSION"));
+const HELP_HEADER: &str = concat!("replicant ", env!("CARGO_PKG_VERSION"));
 
 const ABOUT: &str = "Compare regular expressions and find a shortest counterexample";
 

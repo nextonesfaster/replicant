@@ -53,7 +53,7 @@ cargo run --bin vk -- 'ab|ac' 'a(b|c)'
 ## Library
 
 ```rust
-use replicant::{Comparison, Pattern, Side};
+use replicant_regex::{Comparison, Pattern, Side};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let left = Pattern::new("a(b|c)")?;
@@ -103,11 +103,11 @@ distinguishes replicants from humans; this tool looks for an input that
 distinguishes two regular expressions.
 
 The command is named `vk`, after the Voight-Kampff test. The Rust package is
-named `replicant`.
+named `replicant-regex`.
 
 ## License
 
-`replicant` is distributed under the terms of both the MIT License and the Apache License 2.0.
+`replicant-regex` is distributed under the terms of both the MIT License and the Apache License 2.0.
 
 See the [LICENSE-MIT][mit] and [LICENSE-APACHE][apache] files for more details.
 
