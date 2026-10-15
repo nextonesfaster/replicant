@@ -1,9 +1,8 @@
 # Design
 
-This document describes the intended first version. Compilation, whole-string
-matching, equivalence checking, and shortest counterexamples are implemented.
-The CLI is not. The executable will be named `vk`; the Rust package is named
-`replicant`.
+Replicant provides a Rust library and the `vk` command for regex equivalence
+checking and shortest counterexamples. This document describes the matching
+semantics and implementation.
 
 ## Matching semantics
 
@@ -64,7 +63,14 @@ in bytes, including the empty string when it distinguishes the patterns.
 equivalence decision. Library inputs and counterexamples are ordinary strings;
 escaping them for terminal output belongs to the CLI.
 
-The planned CLI accepts two patterns and uses these exit codes:
+The CLI accepts two patterns and uses the library's default compilation and
+comparison limits. It prints quoted counterexamples with control characters,
+quotes, and backslashes escaped. Printable Unicode is preserved, and an empty
+counterexample is printed as `""`. Results go to stdout and errors to stderr.
+`--help` and `--version` exit successfully without comparing patterns. Patterns
+beginning with a hyphen must follow `--`.
+
+The CLI uses these exit codes:
 
 | Code | Meaning |
 | --- | --- |

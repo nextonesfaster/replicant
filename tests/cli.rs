@@ -1,0 +1,159 @@
+use std::process::{Command, Output};
+
+fn vk(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_vk"))
+        .args(args)
+        .output()
+        .unwrap()
+}
+
+fn assert_comparison(args: &[&str], code: i32, stdout: &str) {
+    let output = vk(args);
+    assert_eq!(output.status.code(), Some(code), "{output:?}");
+    assert_eq!(String::from_utf8(output.stdout).unwrap(), stdout);
+    assert!(output.stderr.is_empty());
+}
+
+#[test]
+fn equivalent_patterns_exit_zero() {
+    assert_comparison(&["ab|ac", "a(b|c)"], 0, "equivalent\n");
+    assert_comparison(&["", "a{0}"], 0, "equivalent\n");
+}
+
+#[test]
+fn different_patterns_exit_one_and_report_the_accepting_side() {
+    assert_comparison(
+        &["a(b|c)", "a(b|c)*"],
+        1,
+        "different\ncounterexample: \"a\"\nmatches: right\n",
+    );
+    assert_comparison(
+        &["a(b|c)*", "a(b|c)"],
+        1,
+        "different\ncounterexample: \"a\"\nmatches: left\n",
+    );
+}
+
+#[test]
+fn original_example_reports_the_empty_string() {
+    assert_comparison(
+        &["^(ab|ac)*$", "^a(b|c)*$"],
+        1,
+        "different\ncounterexample: \"\"\nmatches: left\n",
+    );
+}
+
+#[test]
+fn escapes_control_characters_quotes_and_backslashes() {
+    for (pattern, escaped) in [
+        (r"\n", r"\n"),
+        (r"\r", r"\r"),
+        (r"\t", r"\t"),
+        (r"\x00", r"\0"),
+        (r"\x1B", r"\u{1b}"),
+        ("\"", "\\\""),
+        (r"\\", r"\\"),
+    ] {
+        assert_comparison(
+            &[pattern, "[a&&b]"],
+            1,
+            &format!("different\ncounterexample: \"{escaped}\"\nmatches: left\n"),
+        );
+    }
+}
+
+#[test]
+fn preserves_readable_unicode() {
+    assert_comparison(
+        &["猫", "[a&&b]"],
+        1,
+        "different\ncounterexample: \"猫\"\nmatches: left\n",
+    );
+}
+
+#[test]
+fn double_dash_allows_patterns_that_look_like_options() {
+    assert_comparison(&["--", "-a", "[-]a"], 0, "equivalent\n");
+    assert_comparison(&["--", "--help", "--help"], 0, "equivalent\n");
+}
+
+#[test]
+fn invalid_arguments_exit_two() {
+    for args in [&[][..], &["a"], &["a", "b", "c"], &["--unknown"]] {
+        let output = vk(args);
+        assert_eq!(output.status.code(), Some(2), "{output:?}");
+        assert!(output.stdout.is_empty());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains("error:"), "{stderr}");
+        assert!(stderr.contains("--help"), "{stderr}");
+    }
+}
+
+#[test]
+fn compile_errors_identify_the_pattern_and_exit_two() {
+    for (args, side) in [(["[", "a"], "left"), (["a", "["], "right")] {
+        let output = vk(&args);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(stderr.contains(&format!("vk: {side} pattern:")), "{stderr}");
+        assert!(stderr.contains("unclosed character class"), "{stderr}");
+    }
+}
+
+#[test]
+fn unsupported_patterns_exit_two() {
+    for pattern in [r"\bcat\b", r"(a)\1", "a(?=b)", r"(?-u:.)"] {
+        let output = vk(&[pattern, "a"]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stdout.is_empty());
+        assert!(!output.stderr.is_empty());
+    }
+}
+
+#[test]
+fn compilation_limit_failure_exits_two() {
+    let output = vk(&["a{1000000}", "a"]);
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("left pattern:"), "{stderr}");
+    assert!(stderr.contains("limit"), "{stderr}");
+}
+
+#[test]
+fn help_and_version_exit_zero_without_comparing() {
+    for flag in ["-h", "--help"] {
+        let output = vk(&[flag]);
+        assert!(output.status.success());
+        assert!(output.stderr.is_empty());
+        let stdout = String::from_utf8(output.stdout).unwrap();
+        assert!(
+            stdout.starts_with(concat!("replicant ", env!("CARGO_PKG_VERSION"), "\n")),
+            "{stdout}"
+        );
+        assert!(stdout.contains("Usage: vk <LEFT> <RIGHT>"), "{stdout}");
+        if flag == "--help" {
+            assert!(stdout.contains("whole-string matching"), "{stdout}");
+            assert!(stdout.contains("Exit status is 0"), "{stdout}");
+        }
+    }
+    for flag in ["-V", "--version"] {
+        assert_comparison(&[flag], 0, concat!("vk ", env!("CARGO_PKG_VERSION"), "\n"));
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn rejects_non_utf8_arguments() {
+    use std::{ffi::OsString, os::unix::ffi::OsStringExt};
+
+    let output = Command::new(env!("CARGO_BIN_EXE_vk"))
+        .arg(OsString::from_vec(vec![0xFF]))
+        .arg("a")
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(output.stdout.is_empty());
+    assert!(!output.stderr.is_empty());
+}

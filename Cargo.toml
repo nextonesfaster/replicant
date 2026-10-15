@@ -10,6 +10,11 @@ readme = "README.md"
 keywords = ["regex", "automata", "equivalence", "cli"]
 categories = ["command-line-utilities", "text-processing", "algorithms"]
 
+[[bin]]
+name = "vk"
+path = "src/main.rs"
+
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 regex-automata = { version = "0.4", default-features = false, features = ["std", "syntax", "unicode", "dfa-build", "dfa-search"] }
 regex-syntax = "0.8"

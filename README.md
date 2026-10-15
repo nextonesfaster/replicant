@@ -1,13 +1,56 @@
 # Replicant
 
-Replicant is an experiment in checking whether two regular expressions match
-exactly the same strings, and finding a shortest counterexample when they differ.
-
-The library supports whole-string matching, equivalence checking, and shortest
-counterexamples. The command-line interface is not implemented yet. See the
-[design notes](docs/design.md) for matching semantics and the implementation plan.
+Replicant checks whether two regular expressions match exactly the same strings.
+When they differ, it finds a shortest counterexample.
 
 ## Usage
+
+```sh
+$ vk 'ab|ac' 'a(b|c)'
+equivalent
+
+$ vk 'a(b|c)' 'a(b|c)*'
+different
+counterexample: "a"
+matches: right
+```
+
+Patterns match the entire input. Counterexamples are shortest by UTF-8 byte
+length and may be empty. Quotes and control characters are escaped in the output.
+The supported syntax and resource limits are described in the
+[design notes](docs/design.md).
+
+Use `--` before patterns that begin with a hyphen:
+
+```sh
+vk -- '-a' '[-]a'
+```
+
+Run `vk --help` for help or `vk --version` for the version.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | The patterns are equivalent. |
+| `1` | The patterns differ. |
+| `2` | Invalid arguments or comparison failure. |
+
+Results are written to stdout; errors are written to stderr.
+
+## Installation
+
+Install from a local checkout with Rust and Cargo:
+
+```sh
+cargo install --path .
+```
+
+To run from the checkout without installing:
+
+```sh
+cargo run --bin vk -- 'ab|ac' 'a(b|c)'
+```
+
+## Library
 
 ```rust
 use replicant::{Comparison, Pattern, Side};
