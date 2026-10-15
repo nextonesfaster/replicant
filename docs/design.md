@@ -1,8 +1,8 @@
 # Design
 
-This document describes the intended first version. Comparison and the CLI are
-not implemented yet. The executable will be named `vk`; the Rust package is
-named `replicant`.
+This document describes the intended first version. Single-pattern compilation
+and whole-string matching are implemented; comparison and the CLI are not. The
+executable will be named `vk`; the Rust package is named `replicant`.
 
 ## Matching semantics
 
@@ -29,6 +29,15 @@ named `replicant`.
 - **Bounded resources.** DFA construction and the number of visited state pairs
   will have finite limits. Hitting a limit must report that the comparison could
   not be completed.
+
+Compilation defaults to a 10 MiB limit for each of the NFA, DFA, and auxiliary
+determinization storage. Callers can change these independently through `CompileOptions`
+and `Pattern::with_options`. `Some(bytes)` sets a limit; `None` disables it.
+These are separate limits, not a cap on total process memory.
+
+`CompileError` distinguishes syntax, NFA construction, and DFA construction
+failures. Each variant holds a diagnostic string; dependency error types are not
+exposed. Diagnostic wording is not a stable interface.
 
 The planned CLI accepts two patterns and uses these exit codes:
 

@@ -11,3 +11,5 @@ keywords = ["regex", "automata", "equivalence", "cli"]
 categories = ["command-line-utilities", "text-processing", "algorithms"]
 
 [dependencies]
+regex-automata = { version = "0.4", default-features = false, features = ["std", "syntax", "unicode", "dfa-build", "dfa-search"] }
+regex-syntax = "0.8"

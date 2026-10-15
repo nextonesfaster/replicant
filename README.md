@@ -3,7 +3,8 @@
 Replicant is an experiment in checking whether two regular expressions match
 exactly the same strings, and finding a shortest counterexample when they differ.
 
-Comparison and the command-line interface are not implemented yet. See the
+The library supports compiling patterns and matching whole strings. Comparison
+and the command-line interface are not implemented yet. See the
 [design notes](docs/design.md) for matching semantics and the implementation plan.
 
 ## Development
