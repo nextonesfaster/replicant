@@ -2,7 +2,7 @@
 
 mod compare;
 
-pub use compare::{CompareError, CompareOptions};
+pub use compare::{CompareError, CompareOptions, Comparison, Counterexample, Side};
 
 use std::{error::Error, fmt};
 
@@ -213,7 +213,53 @@ impl Pattern {
         other: &Self,
         options: &CompareOptions,
     ) -> Result<bool, CompareError> {
-        compare::is_equivalent(&self.dfa, self.start, &other.dfa, other.start, options)
+        Ok(matches!(
+            self.compare_with_options(other, options)?,
+            Comparison::Equivalent
+        ))
+    }
+
+    /// Compares two patterns, returning a shortest counterexample if they differ.
+    ///
+    /// Uses the default [`CompareOptions`]. Counterexample length is measured in
+    /// UTF-8 bytes. [`Side::Left`] refers to `self`; [`Side::Right`] refers to `other`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the state pair limit is exceeded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use replicant::{Comparison, Counterexample, Pattern, Side};
+    ///
+    /// let left = Pattern::new("(ab|ac)*")?;
+    /// let right = Pattern::new("a(b|c)*")?;
+    /// assert_eq!(left.compare(&right)?, Comparison::Different(Counterexample {
+    ///     input: String::new(),
+    ///     matched_by: Side::Left,
+    /// }));
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn compare(&self, other: &Self) -> Result<Comparison, CompareError> {
+        self.compare_with_options(other, &CompareOptions::default())
+    }
+
+    /// Compares two patterns using the given options.
+    ///
+    /// Returns [`Comparison::Equivalent`] if both patterns match exactly the same
+    /// UTF-8 strings. Otherwise returns [`Comparison::Different`] with a shortest
+    /// counterexample, measured in UTF-8 bytes, and the side that matches it.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configured state pair limit is exceeded.
+    pub fn compare_with_options(
+        &self,
+        other: &Self,
+        options: &CompareOptions,
+    ) -> Result<Comparison, CompareError> {
+        compare::compare(&self.dfa, self.start, &other.dfa, other.start, options)
     }
 }
 

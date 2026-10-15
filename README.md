@@ -3,10 +3,26 @@
 Replicant is an experiment in checking whether two regular expressions match
 exactly the same strings, and finding a shortest counterexample when they differ.
 
-The library supports whole-string matching and checking whether two patterns are
-equivalent. Counterexamples and the command-line interface are not implemented
-yet. See the [design notes](docs/design.md) for matching semantics and the
-implementation plan.
+The library supports whole-string matching, equivalence checking, and shortest
+counterexamples. The command-line interface is not implemented yet. See the
+[design notes](docs/design.md) for matching semantics and the implementation plan.
+
+## Usage
+
+```rust
+use replicant::{Comparison, Pattern, Side};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let left = Pattern::new("a(b|c)")?;
+    let right = Pattern::new("a(b|c)*")?;
+
+    if let Comparison::Different(example) = left.compare(&right)? {
+        assert_eq!(example.input, "a");
+        assert_eq!(example.matched_by, Side::Right);
+    }
+    Ok(())
+}
+```
 
 ## Development
 

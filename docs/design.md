@@ -1,8 +1,9 @@
 # Design
 
 This document describes the intended first version. Compilation, whole-string
-matching, and equivalence checking are implemented. Counterexamples and the CLI
-are not. The executable will be named `vk`; the Rust package is named `replicant`.
+matching, equivalence checking, and shortest counterexamples are implemented.
+The CLI is not. The executable will be named `vk`; the Rust package is named
+`replicant`.
 
 ## Matching semantics
 
@@ -46,10 +47,22 @@ accepted by either compiled pattern and therefore cannot distinguish them.
 
 Comparison defaults to a limit of 100,000 distinct state pairs, including the
 initial pair. `CompareOptions::state_pair_limit` changes or disables this limit
-through `Pattern::is_equivalent_with_options`. Exceeding it returns
+through `Pattern::is_equivalent_with_options` or `Pattern::compare_with_options`.
+Exceeding it returns
 `CompareError::StateLimitExceeded`. Equivalence is reported only after all
 reachable pairs have been explored; finding different acceptance reports
-inequivalence. This API does not yet return a counterexample.
+inequivalence.
+
+`Pattern::compare` returns `Comparison::Equivalent` or
+`Comparison::Different(Counterexample)`. A counterexample contains a UTF-8 input
+and the `Side` that accepts it: `Left` is the method receiver, and `Right` is the
+other pattern. The search stores a predecessor and byte for each discovered
+state pair. Following these links reconstructs a shortest distinguishing string
+in bytes, including the empty string when it distinguishes the patterns.
+
+`Pattern::is_equivalent` delegates to the same search and returns only the
+equivalence decision. Library inputs and counterexamples are ordinary strings;
+escaping them for terminal output belongs to the CLI.
 
 The planned CLI accepts two patterns and uses these exit codes:
 
