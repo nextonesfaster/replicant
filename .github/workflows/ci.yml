@@ -24,4 +24,6 @@ jobs:
       - name: Check formatting and code
         run: ./scripts/check
       - name: Test
-        run: cargo test --locked --all-features
+        run: |
+          cargo test --locked --all-features
+          cargo test --locked --no-default-features

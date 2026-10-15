@@ -102,6 +102,17 @@ cargo run --bin vk -- 'ab|ac' 'a(b|c)'
 
 ## Library
 
+To use the library without the CLI dependencies, disable default features:
+
+```toml
+[dependencies]
+replicant-regex = { version = "0.1", default-features = false }
+```
+
+The default `cli` feature builds `vk` and enables `clap`, `serde`, and
+`serde_json`. It is not needed for the library API. Normal `cargo install`
+commands enable this feature automatically.
+
 ```rust
 use replicant_regex::{Comparison, Pattern, Side};
 
@@ -123,6 +134,12 @@ The project is written in Rust. To run the tests:
 
 ```sh
 cargo test
+```
+
+To test the library without CLI dependencies:
+
+```sh
+cargo test --no-default-features
 ```
 
 Run the formatting, compilation, and Clippy checks with:

@@ -4,6 +4,12 @@ Replicant provides a Rust library and the `vk` command for regex equivalence
 checking and shortest counterexamples. This document describes the matching
 semantics and implementation.
 
+The default `cli` Cargo feature enables the `vk` binary and its argument-parsing
+and serialization dependencies. The library API does not require this feature.
+Library consumers can use `default-features = false` to exclude `clap`, `serde`,
+and `serde_json`. CLI integration tests require `cli`; library tests run in both
+configurations.
+
 ## Matching semantics
 
 - **Whole-string matching.** Each expression must accept the entire input.
