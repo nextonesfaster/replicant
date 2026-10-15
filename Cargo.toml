@@ -1,0 +1,13 @@
+[package]
+name = "replicant"
+version = "0.1.0"
+edition = "2024"
+authors = ["Sujal Bolia"]
+description = "Determine regex equivalence and find shortest counterexamples"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nextonesfaster/replicant"
+readme = "README.md"
+keywords = ["regex", "automata", "equivalence", "cli"]
+categories = ["command-line-utilities", "text-processing", "algorithms"]
+
+[dependencies]
