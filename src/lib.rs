@@ -1,5 +1,9 @@
 //! Whole-string regular expressions for language comparison.
 
+mod compare;
+
+pub use compare::{CompareError, CompareOptions};
+
 use std::{error::Error, fmt};
 
 use regex_automata::{
@@ -156,6 +160,60 @@ impl Pattern {
         // regex-automata delays acceptance by one transition. End of input is
         // a distinct symbol, not a byte, and must be checked even for "".
         self.dfa.is_match_state(self.dfa.next_eoi_state(state))
+    }
+
+    /// Returns `true` if both patterns match exactly the same UTF-8 strings.
+    ///
+    /// Uses the default [`CompareOptions`]. Equivalence is determined by
+    /// exploring reachable pairs of DFA states, not by sampling input strings.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the state pair limit is exceeded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use replicant::Pattern;
+    ///
+    /// let left = Pattern::new("ab|ac")?;
+    /// let right = Pattern::new("a(b|c)")?;
+    /// assert!(left.is_equivalent(&right)?);
+    ///
+    /// let different = Pattern::new("a(b|c)*")?;
+    /// assert!(!left.is_equivalent(&different)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn is_equivalent(&self, other: &Self) -> Result<bool, CompareError> {
+        self.is_equivalent_with_options(other, &CompareOptions::default())
+    }
+
+    /// Returns whether both patterns match exactly the same UTF-8 strings,
+    /// using the given comparison options.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the configured state pair limit is exceeded.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use replicant::{CompareOptions, Pattern};
+    ///
+    /// let options = CompareOptions {
+    ///     state_pair_limit: Some(1_000_000),
+    /// };
+    /// let left = Pattern::new("a*")?;
+    /// let right = Pattern::new("(?:aa*|)")?;
+    /// assert!(left.is_equivalent_with_options(&right, &options)?);
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// ```
+    pub fn is_equivalent_with_options(
+        &self,
+        other: &Self,
+        options: &CompareOptions,
+    ) -> Result<bool, CompareError> {
+        compare::is_equivalent(&self.dfa, self.start, &other.dfa, other.start, options)
     }
 }
 

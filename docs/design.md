@@ -1,8 +1,8 @@
 # Design
 
-This document describes the intended first version. Single-pattern compilation
-and whole-string matching are implemented; comparison and the CLI are not. The
-executable will be named `vk`; the Rust package is named `replicant`.
+This document describes the intended first version. Compilation, whole-string
+matching, and equivalence checking are implemented. Counterexamples and the CLI
+are not. The executable will be named `vk`; the Rust package is named `replicant`.
 
 ## Matching semantics
 
@@ -38,6 +38,18 @@ These are separate limits, not a cap on total process memory.
 `CompileError` distinguishes syntax, NFA construction, and DFA construction
 failures. Each variant holds a diagnostic string; dependency error types are not
 exposed. Diagnostic wording is not a stable interface.
+
+`Pattern::is_equivalent` returns whether two compiled patterns match exactly the
+same UTF-8 strings. It searches pairs of DFA states in breadth-first order,
+checking acceptance at end of input at each pair. Invalid UTF-8 cannot be
+accepted by either compiled pattern and therefore cannot distinguish them.
+
+Comparison defaults to a limit of 100,000 distinct state pairs, including the
+initial pair. `CompareOptions::state_pair_limit` changes or disables this limit
+through `Pattern::is_equivalent_with_options`. Exceeding it returns
+`CompareError::StateLimitExceeded`. Equivalence is reported only after all
+reachable pairs have been explored; finding different acceptance reports
+inequivalence. This API does not yet return a counterexample.
 
 The planned CLI accepts two patterns and uses these exit codes:
 
